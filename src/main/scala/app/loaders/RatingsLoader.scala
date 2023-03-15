@@ -25,6 +25,7 @@ class RatingsLoader(sc : SparkContext, path : String) extends Serializable {
         None: Option[Double],
         tokens(2).toDouble,
         tokens(3).toInt))
+      .persist()
     ratingsRdd
   }
 }

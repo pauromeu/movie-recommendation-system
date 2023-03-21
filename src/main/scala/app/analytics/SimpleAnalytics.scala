@@ -67,7 +67,10 @@ class SimpleAnalytics() extends Serializable {
    * @return The RDD for the movies which are in the supplied genres
    */
   def getAllMoviesByGenre(movies: RDD[(Int, String, List[String])],
-                          requiredGenres: RDD[String]): RDD[String] = ???
+                          requiredGenres: RDD[String]): RDD[String] = {
+    titlesGroupedById.filter(a => a._2._2 == requiredGenres).map(a => a._2._1)
+    // !!!!!!!!!!!!!!!!!!!!! Is it needed to consider that requiredGenres may be several arrays?????????????
+  }
 
   /**
    * Filter the movies RDD having the required genres

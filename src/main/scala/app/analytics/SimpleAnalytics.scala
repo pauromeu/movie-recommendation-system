@@ -52,6 +52,7 @@ class SimpleAnalytics() extends Serializable {
   }
 
   def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {
+    // ratingsGroupedByYearByTitle.mapValues(ratYear => ratYear.map(ratMovies => (ratMovies._1, ratMovies._2.size))).join()
     ???
   }
 

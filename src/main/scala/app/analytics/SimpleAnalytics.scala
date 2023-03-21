@@ -50,11 +50,10 @@ class SimpleAnalytics() extends Serializable {
       .join(titlesGroupedById)
       .map(a => (a._2._1._1, a._2._2._1))
   }
-  private def getMovieNameById(id: Int): String = {
-    titlesGroupedById.filter(_._1 == id).map(movie => movie._2._1).take(1)(0)
-  }
 
-  def getMostRatedGenreEachYear: RDD[(Int, List[String])] = ???
+  def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {
+    ???
+  }
 
   // Note: if two genre has the same number of rating, return the first one based on lexicographical sorting on genre.
   def getMostAndLeastRatedGenreAllTime: ((String, Int), (String, Int)) = ???

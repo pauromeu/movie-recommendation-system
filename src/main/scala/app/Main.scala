@@ -23,7 +23,6 @@ object Main {
     analytics.init(ratings, movies)
 
     //analytics.getNumberOfMoviesRatedEachYear.foreach(a => println(a.toString()))
-
-
+    analytics.getMostRatedMovieEachYear.foreach(a => println(a.toString()))
   }
 }

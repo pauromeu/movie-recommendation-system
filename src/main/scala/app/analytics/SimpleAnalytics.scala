@@ -52,12 +52,28 @@ class SimpleAnalytics() extends Serializable {
   }
 
   def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {
-    // ratingsGroupedByYearByTitle.mapValues(ratYear => ratYear.map(ratMovies => (ratMovies._1, ratMovies._2.size))).join()
-    ???
+    val groupedByYearAndGenre = ratingsGroupedByYearByTitle.flatMap {
+      case (year, movieRatings) => movieRatings.map {
+        case (movieId, ratings) => (movieId, (year, ratings))
+      }
+    }.join(titlesGroupedById)
+
+    val ratingsCountByYearAndGenres = groupedByYearAndGenre.map {
+      case ((movieId, ((year, ratings), (_, genres)))) =>
+        (year, (genres, ratings.size))
+    }
+
+    ratingsCountByYearAndGenres.groupByKey().mapValues {
+      genreCounts => genreCounts.maxBy(_._2)
+    }.mapValues {
+      case (genres, _) => genres
+    }
   }
 
   // Note: if two genre has the same number of rating, return the first one based on lexicographical sorting on genre.
-  def getMostAndLeastRatedGenreAllTime: ((String, Int), (String, Int)) = ???
+  def getMostAndLeastRatedGenreAllTime: ((String, Int), (String, Int)) = {
+    ???
+  }
 
   /**
    * Filter the movies RDD having the required genres

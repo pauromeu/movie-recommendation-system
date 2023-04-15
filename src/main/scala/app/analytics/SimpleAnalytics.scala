@@ -53,35 +53,15 @@ class SimpleAnalytics() extends Serializable {
   }
 
   def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {
-
-    val groupedByYearAndGenre = ratingsGroupedByYearByTitle.flatMap {
-      case (year, movieRatings) => movieRatings.map {
-        case (movieId, ratings) => (movieId, (year, ratings))
-      }
-    }.join(titlesGroupedById)
-
-    val ratingsCountByYearAndGenres = groupedByYearAndGenre.map {
-      case ((movieId, ((year, ratings), (_, genres)))) =>
-        (year, (genres, ratings.size))
+    ratingsGroupedByYearByTitle.mapValues(movieRatings => {
+      val maxRatings = movieRatings.maxBy(rating => rating._2.size)._2.size
+      val moviesWithMaxRatings = movieRatings.filter(rating => rating._2.size == maxRatings)
+      moviesWithMaxRatings.maxBy(rating => rating._1)
+    }).map {
+      case (year, (movieId, ratings)) => (movieId, year)
+    }.join(titlesGroupedById).map {
+      case (movieId, (year, movieInfo)) => (year, movieInfo._2)
     }
-
-    /*
-    ratingsCountByYearAndGenres.groupByKey().mapValues {
-      genreCounts => genreCounts
-    }.mapValues {
-      case (genres, _) => genres
-    }
-    */
-
-    ratingsCountByYearAndGenres.groupByKey().mapValues {
-      case genresCounts => genresCounts.groupBy {
-        case (genres, _) => genres
-      }
-    }
-
-    ???
-
-    // TODO: Needs to be fixed! It returns movie with more ratings, not the genre!!!!!
   }
 
   // Note: if two genre has the same number of rating, return the first one based on lexicographical sorting on genre.

@@ -106,7 +106,6 @@ class SimpleAnalytics() extends Serializable {
                           requiredGenres: RDD[String]): RDD[String] = {
     val requiredGenresArray = requiredGenres.collect()
     movies.filter(movie => requiredGenresArray.forall(movie._3.contains)).map(movie => movie._2)
-    // !!!!!!!!!!!!!!!!!!!!! Is it needed to consider that requiredGenres may be several arrays?????????????
   }
 
   /**
@@ -121,7 +120,11 @@ class SimpleAnalytics() extends Serializable {
    */
   def getAllMoviesByGenre_usingBroadcast(movies: RDD[(Int, String, List[String])],
                                          requiredGenres: List[String],
-                                         broadcastCallback: List[String] => Broadcast[List[String]]): RDD[String] = ???
+                                         broadcastCallback: List[String] => Broadcast[List[String]]): RDD[String] = {
+    val requiredGenresBroadcast = broadcastCallback(requiredGenres)
+    movies.filter(movie => requiredGenresBroadcast.value.forall(movie._3.contains))
+      .map(movie => movie._2)
+  }
 
 }
 

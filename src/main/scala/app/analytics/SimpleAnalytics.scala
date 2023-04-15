@@ -41,10 +41,15 @@ class SimpleAnalytics() extends Serializable {
   }
 
   def getMostRatedMovieEachYear: RDD[(Int, String)] = {
-    ratingsGroupedByYearByTitle.mapValues(ratingsYear => ratingsYear.maxBy(a => a._2.size))
-      .map(e => (e._2._1, (e._1, e._2._2)))
-      .join(titlesGroupedById)
-      .map(a => (a._2._1._1, a._2._2._1))
+    ratingsGroupedByYearByTitle.mapValues(movieRatings => {
+      val maxRatings = movieRatings.maxBy(rating => rating._2.size)._2.size
+      val moviesWithMaxRatings = movieRatings.filter(rating => rating._2.size == maxRatings)
+      moviesWithMaxRatings.maxBy(rating => rating._1)
+    }).map {
+      case (year, (movieId, ratings)) => (movieId, year)
+    }.join(titlesGroupedById).map {
+      case (movieId, (year, movieInfo)) => (year, movieInfo._1)
+    }
   }
 
   def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {

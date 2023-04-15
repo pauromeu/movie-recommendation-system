@@ -3,11 +3,7 @@ package app.analytics
 import org.apache.spark.HashPartitioner
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK
 import org.joda.time.DateTime
-
-import java.time.Instant
-
 
 class SimpleAnalytics() extends Serializable {
 
@@ -52,6 +48,7 @@ class SimpleAnalytics() extends Serializable {
   }
 
   def getMostRatedGenreEachYear: RDD[(Int, List[String])] = {
+
     val groupedByYearAndGenre = ratingsGroupedByYearByTitle.flatMap {
       case (year, movieRatings) => movieRatings.map {
         case (movieId, ratings) => (movieId, (year, ratings))
@@ -63,11 +60,23 @@ class SimpleAnalytics() extends Serializable {
         (year, (genres, ratings.size))
     }
 
+    /*
     ratingsCountByYearAndGenres.groupByKey().mapValues {
-      genreCounts => genreCounts.maxBy(_._2)
+      genreCounts => genreCounts
     }.mapValues {
       case (genres, _) => genres
     }
+    */
+
+    ratingsCountByYearAndGenres.groupByKey().mapValues {
+      case genresCounts => genresCounts.groupBy {
+        case (genres, _) => genres
+      }
+    }
+
+    ???
+
+    // TODO: Needs to be fixed! It returns movie with more ratings, not the genre!!!!!
   }
 
   // Note: if two genre has the same number of rating, return the first one based on lexicographical sorting on genre.

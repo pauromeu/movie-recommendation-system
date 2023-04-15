@@ -66,7 +66,33 @@ class SimpleAnalytics() extends Serializable {
 
   // Note: if two genre has the same number of rating, return the first one based on lexicographical sorting on genre.
   def getMostAndLeastRatedGenreAllTime: ((String, Int), (String, Int)) = {
-    ???
+    val genresCount = ratingsGroupedByYearByTitle.mapValues(movieRatings => {
+      val maxRatings = movieRatings.maxBy(rating => rating._2.size)._2.size
+      val moviesWithMaxRatings = movieRatings.filter(rating => rating._2.size == maxRatings)
+      moviesWithMaxRatings.maxBy(rating => rating._1)
+    }).map {
+      case (year, (movieId, ratings)) => (movieId, year)
+    }.join(titlesGroupedById).flatMap {
+      case (movieId, (year, movieInfo)) => movieInfo._2.map(genre => (genre, 1))
+    }.reduceByKey(_ + _)
+
+    genresCount.foreach(a => println(a))
+
+    val mostRatedGenre = genresCount.reduce((a, b) => {
+      if (a._2 > b._2) a
+      else if (a._2 < b._2) b
+      else if (a._1 < b._1) a
+      else b
+    })
+
+    val leastRatedGenre = genresCount.reduce((a,b) => {
+      if (a._2 < b._2) a
+      else if (a._2 > b._2) b
+      else if (a._1 < b._1) a
+      else b
+    })
+
+    (leastRatedGenre, mostRatedGenre)
   }
 
   /**

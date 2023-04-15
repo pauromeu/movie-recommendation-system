@@ -104,7 +104,8 @@ class SimpleAnalytics() extends Serializable {
    */
   def getAllMoviesByGenre(movies: RDD[(Int, String, List[String])],
                           requiredGenres: RDD[String]): RDD[String] = {
-    titlesGroupedById.filter(a => a._2._2 == requiredGenres).map(a => a._2._1)
+    val requiredGenresArray = requiredGenres.collect()
+    movies.filter(movie => requiredGenresArray.forall(movie._3.contains)).map(movie => movie._2)
     // !!!!!!!!!!!!!!!!!!!!! Is it needed to consider that requiredGenres may be several arrays?????????????
   }
 

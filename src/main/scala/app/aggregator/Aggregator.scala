@@ -51,21 +51,19 @@ class Aggregator(sc: SparkContext) extends Serializable {
    */
   def getKeywordQueryResult(keywords: List[String]): Double = {
     val filteredTitles = ratedTitles.filter {
-      case (_, (_, tags, _)) => keywords.forall(tags.contains)
+      case (_, (_, _, tags)) => {
+        keywords.forall(keyword => tags.contains(keyword))
+      }
     }
 
-    val ratedTitlesAux = filteredTitles.filter(_._2._1 > 0.0)
+    val ratedFilteredTitles = filteredTitles.filter(_._2._1 > 0.0)
 
-    if (filteredTitles.isEmpty()) {
+    if (ratedFilteredTitles.isEmpty()) {
       -1.0
-    } else if (ratedTitlesAux.isEmpty()) {
+    } else if (ratedFilteredTitles.isEmpty()) {
       0.0
     } else {
-      val (sumRatings, count) = ratedTitlesAux.map(_._2._1).aggregate((0.0, 0))(
-        (acc, rating) => (acc._1 + rating, acc._2 + 1),
-        (acc1, acc2) => (acc1._1 + acc2._1, acc1._2 + acc2._2)
-      )
-      sumRatings / count
+      ratedFilteredTitles.map(_._2._1).sum() / ratedFilteredTitles.count().toDouble
     }
   }
 

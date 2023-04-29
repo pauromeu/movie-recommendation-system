@@ -2,7 +2,6 @@ package app.aggregator
 
 import org.apache.spark.{HashPartitioner, SparkContext}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK
 
 /**
  * Class for computing the aggregates
@@ -13,6 +12,7 @@ class Aggregator(sc: SparkContext) extends Serializable {
 
   private var state = null
   private var partitioner: HashPartitioner = null
+  private var ratedTitles: RDD[(Int, (Double, String, List[String]))] = null
 
   /**
    * Use the initial ratings and titles to compute the average rating for each title.
@@ -25,14 +25,20 @@ class Aggregator(sc: SparkContext) extends Serializable {
   def init(
             ratings: RDD[(Int, Int, Option[Double], Double, Int)],
             title: RDD[(Int, String, List[String])]
-          ): Unit = ???
+          ): Unit = {
+    val averageRatings = ratings.map(rating => (rating._2, rating._4)).groupByKey().map(title => (title._1, title._2.sum / title._2.size))
+    ratedTitles = title
+      .map(t => (t._1, (t._2, t._3))).leftOuterJoin(averageRatings)
+      .map { case (title_id, ((title_name, tags), rating)) => (title_id, (rating.getOrElse(0.0), title_name, tags)) }
+      .persist()
+  }
 
   /**
    * Return pre-computed title-rating pairs.
    *
    * @return The pairs of titles and ratings
    */
-  def getResult(): RDD[(String, Double)] = ???
+  def getResult(): RDD[(String, Double)] = ratedTitles.map(rt => (rt._2._2, rt._2._1))
 
   /**
    * Compute the average rating across all (rated titles) that contain the
@@ -43,7 +49,25 @@ class Aggregator(sc: SparkContext) extends Serializable {
    * @return The average rating for the given keywords. Return 0.0 if no
    *         such titles are rated and -1.0 if no such titles exist.
    */
-  def getKeywordQueryResult(keywords: List[String]): Double = ???
+  def getKeywordQueryResult(keywords: List[String]): Double = {
+    val filteredTitles = ratedTitles.filter {
+      case (_, (_, tags, _)) => keywords.forall(tags.contains)
+    }
+
+    val ratedTitlesAux = filteredTitles.filter(_._2._1 > 0.0)
+
+    if (filteredTitles.isEmpty()) {
+      -1.0
+    } else if (ratedTitlesAux.isEmpty()) {
+      0.0
+    } else {
+      val (sumRatings, count) = ratedTitlesAux.map(_._2._1).aggregate((0.0, 0))(
+        (acc, rating) => (acc._1 + rating, acc._2 + 1),
+        (acc1, acc2) => (acc1._1 + acc2._1, acc1._2 + acc2._2)
+      )
+      sumRatings / count
+    }
+  }
 
   /**
    * Use the "delta"-ratings to incrementally maintain the aggregate ratings

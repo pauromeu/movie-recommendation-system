@@ -77,22 +77,17 @@ class Aggregator(sc: SparkContext) extends Serializable {
    */
   def updateResult(delta_ : Array[(Int, Int, Option[Double], Double, Int)]): Unit = {
     val deltaRatings = sc.parallelize(delta_)
-    val deltaRatingsSumsAndCounts = deltaRatings.map(rating => (rating._2, (rating._4, 1))).reduceByKey((r1, r2) => (r1._1 + r2._1, r1._2 + r2._2))
-/*
-    println("CURRENT RATINGS:")
-    ratedTitles.foreach(a => println(a.toString()))
+    val deltaRatingsSumsAndCounts = deltaRatings.map(rating => (rating._2, (rating._4 - rating._3.getOrElse(0.0), rating._3.isDefined match {
+      case true => 0
+      case false => 1
+    }))).reduceByKey((r1, r2) => (r1._1 + r2._1, r1._2 + r2._2))
 
-    println("DELTA RATINGS:")
-    delta_.foreach(a => println(a.toString()))
-*/
     val updatedRatedTitles = ratedTitles.leftOuterJoin(deltaRatingsSumsAndCounts).map {
       case (title_id, ((old_rating, old_count, title_name, tags), delta)) =>
-        //println((title_id, ((old_rating, old_count, title_name, tags), delta)).toString())
         val (new_rating, new_count) = delta match {
           case Some((delta_sum, delta_count)) =>
-            //println("IN!!!!")
-            //println((old_rating * old_count / (old_count + delta_count) + delta_sum / (old_count + delta_count), old_count + delta_count).toString())
-            (old_rating * old_count / (old_count + delta_count) + delta_sum / (old_count + delta_count), old_count + delta_count)
+            val updated_rating = ((old_rating * old_count) + delta_sum) / (old_count + delta_count)
+            (updated_rating, old_count + delta_count)
           case None => (old_rating, old_count)
         }
         (title_id, (new_rating, new_count, title_name, tags))

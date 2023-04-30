@@ -54,7 +54,7 @@ class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) e
   def lookup[T: ClassTag](queries: RDD[(IndexedSeq[Int], T)])
   : RDD[(IndexedSeq[Int], T, List[(Int, String, List[String])])] = {
     queries.leftOuterJoin(titlesBuckets).map {
-      case(bucketId, (operation, optionalTitlesList)) => (bucketId, operation, optionalTitlesList.getOrElse(List()))
+      case(bucketId, (payload, optionalTitlesList)) => (bucketId, payload, optionalTitlesList.getOrElse(List()))
     }
   }
 }

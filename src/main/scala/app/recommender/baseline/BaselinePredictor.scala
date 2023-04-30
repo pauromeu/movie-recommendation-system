@@ -11,7 +11,7 @@ class BaselinePredictor() extends Serializable {
   def init(ratingsRDD: RDD[(Int, Int, Option[Double], Double, Int)]): Unit = {
     usersRatingAverages = ratingsRDD.map(r => (r._1, (r._2, r._4)))
       .groupByKey()
-      .mapValues(list => list.reduce(_._2 + _._2) / list.size)
+      .mapValues(list => list.map(_._2).reduce(_ + _) / list.size)
       .persist()
 
     val ratingsWithDeviations = ratingsRDD.map(r => (r._1, (r._2, r._4)))
@@ -23,7 +23,7 @@ class BaselinePredictor() extends Serializable {
 
     moviesAverageDeviation = ratingsWithDeviations
       .groupByKey()
-      .mapValues(list => list.reduce(_._2 + _._2) / list.size)
+      .mapValues(list => list.map(_._2).reduce(_ + _) / list.size)
       .persist()
   }
 
@@ -31,18 +31,25 @@ class BaselinePredictor() extends Serializable {
     val userAverageRating = getUserAverageRating(userId)
     val movieAverageDeviation = getMovieAverageDeviation(movieId)
 
-    userAverageRating + movieAverageDeviation * scale(userAverageRating + movieAverageDeviation, userAverageRating)
+    println(userAverageRating)
+    println(movieAverageDeviation)
+    println(userAverageRating + movieAverageDeviation * scale(userAverageRating + movieAverageDeviation, userAverageRating))
+
+    if (userAverageRating == 0)
+      return ??? //TODO: Return movie global average
+    else
+      userAverageRating + movieAverageDeviation * scale(userAverageRating + movieAverageDeviation, userAverageRating)
   }
 
   private def normalizedDeviation(userRating: Double, userAverageRating: Double) = {
     (userRating - userAverageRating) / scale(userRating, userAverageRating)
   }
 
-  private def scale(userRating: Double, userAverageRating: Double): Double = {
-    if (userRating > userAverageRating) {
+  private def scale(x: Double, userAverageRating: Double): Double = {
+    if (x > userAverageRating) {
       5 - userAverageRating
-    } else if (userRating < userAverageRating) {
-      userRating - 1
+    } else if (x < userAverageRating) {
+      userAverageRating - 1
     } else {
       1
     }

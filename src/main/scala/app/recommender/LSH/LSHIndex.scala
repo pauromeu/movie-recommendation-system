@@ -14,6 +14,14 @@ import scala.reflect.ClassTag
 class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) extends Serializable {
 
   private val minhash = new MinHash(seed)
+  private var titlesBuckets: RDD[(IndexedSeq[Int], List[(Int, String, List[String])])] = null
+
+  def init(): Unit = {
+    val titlesHash = data.map {
+      case (title_id, title_name, keywords) => (minhash.hash(keywords),(title_id, title_name, keywords))
+    }
+    titlesBuckets = titlesHash.groupByKey().mapValues(titlesIterable => titlesIterable.toList).persist()
+  }
 
   /**
    * Hash function for an RDD of queries.
@@ -30,7 +38,7 @@ class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) e
    *
    * @return Data structure of LSH index
    */
-  def getBuckets(): RDD[(IndexedSeq[Int], List[(Int, String, List[String])])] = ???
+  def getBuckets(): RDD[(IndexedSeq[Int], List[(Int, String, List[String])])] = titlesBuckets
 
   /**
    * Lookup operation on the LSH index
@@ -41,5 +49,9 @@ class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) e
    *         If no match exists in the LSH index, return an empty result list.
    */
   def lookup[T: ClassTag](queries: RDD[(IndexedSeq[Int], T)])
-  : RDD[(IndexedSeq[Int], T, List[(Int, String, List[String])])] = ???
+  : RDD[(IndexedSeq[Int], T, List[(Int, String, List[String])])] = {
+    queries.leftOuterJoin(titlesBuckets).map {
+      case(bucketId, (operation, optionalTitlesList)) => (bucketId, operation, optionalTitlesList.getOrElse(List()))
+    }
+  }
 }

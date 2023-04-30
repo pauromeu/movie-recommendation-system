@@ -76,8 +76,6 @@ class SimpleAnalytics() extends Serializable {
       case (movieId, (year, movieInfo)) => movieInfo._2.map(genre => (genre, 1))
     }.reduceByKey(_ + _)
 
-    genresCount.foreach(a => println(a))
-
     val mostRatedGenre = genresCount.reduce((a, b) => {
       if (a._2 > b._2) a
       else if (a._2 < b._2) b

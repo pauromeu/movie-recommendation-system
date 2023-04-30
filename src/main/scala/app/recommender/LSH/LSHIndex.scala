@@ -14,17 +14,10 @@ import scala.reflect.ClassTag
 class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) extends Serializable {
 
   private val minhash = new MinHash(seed)
-  private var titlesBuckets: RDD[(IndexedSeq[Int], List[(Int, String, List[String])])] = null
-
-  def init(): Unit = {
-    val titlesHash = data.map {
-      case (title_id, title_name, keywords) => (minhash.hash(keywords),(title_id, title_name, keywords))
-    }
-
-    // TODO: Currently not using hash function defined in this class!!!!!!!!!!!
-
-    titlesBuckets = titlesHash.groupByKey().mapValues(titlesIterable => titlesIterable.toList).persist()
-  }
+  private val titlesBuckets = data.map {
+    case (title_id, title_name, keywords) => (minhash.hash(keywords), (title_id, title_name, keywords))
+  }.groupByKey().mapValues(titlesIterable => titlesIterable.toList).persist()
+  // TODO: Currently not using hash function defined in this class!!!!!!!!!!!
 
   /**
    * Hash function for an RDD of queries.

@@ -20,14 +20,43 @@ class Recommender(sc: SparkContext,
   private val baselinePredictor = new BaselinePredictor()
   baselinePredictor.init(ratings)
 
+  private val actualRatings = ratings
+
   /**
    * Returns the top K recommendations for movies similar to the List of genres
    * for userID using the BaseLinePredictor
    */
-  def recommendBaseline(userId: Int, genre: List[String], K: Int): List[(Int, Double)] = ???
+  def recommendBaseline(userId: Int, genre: List[String], K: Int): List[(Int, Double)] = {
+    val genreRDD = sc.parallelize(List(genre))
+    val nearMovies = nn_lookup.lookup(genreRDD).collect().toList
+
+    nearMovies.flatMap {
+      case (_, moviesList) => moviesList.map {
+        case (movieId, _, _) =>
+          (movieId, baselinePredictor.predict(userId, movieId))
+      }
+    }.sortWith(_._2 > _._2)
+      .take(K)
+  }
 
   /**
    * The same as recommendBaseline, but using the CollaborativeFiltering predictor
    */
-  def recommendCollaborative(userId: Int, genre: List[String], K: Int): List[(Int, Double)] = ???
+  def recommendCollaborative(userId: Int, genre: List[String], K: Int): List[(Int, Double)] = {
+    val genreRDD = sc.parallelize(List(genre))
+    val nearMovies = nn_lookup.lookup(genreRDD).collect().toList
+
+    nearMovies.flatMap {
+      case (_, moviesList) => moviesList.map {
+        case (movieId, _, _) =>
+          (movieId, collaborativePredictor.predict(userId, movieId))
+      }
+    }.sortWith(_._2 > _._2)
+      .take(K)
+  }
+
+  private def getUserMovieRating(userId: Int, movieId: Int): Double = {
+    val userRating = actualRatings.filter(rating => rating._1 == userId && rating._2 == movieId)
+    if (userRating.isEmpty()) return 0.0 else userRating.first()._4
+  }
 }

@@ -31,10 +31,6 @@ class BaselinePredictor() extends Serializable {
     val userAverageRating = getUserAverageRating(userId)
     val movieAverageDeviation = getMovieAverageDeviation(movieId)
 
-    println(userAverageRating)
-    println(movieAverageDeviation)
-    println(userAverageRating + movieAverageDeviation * scale(userAverageRating + movieAverageDeviation, userAverageRating))
-
     if (userAverageRating == 0)
       return getMovieGlobalAverage(movieId)
     else

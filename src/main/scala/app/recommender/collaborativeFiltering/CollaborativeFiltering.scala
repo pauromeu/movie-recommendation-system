@@ -12,9 +12,10 @@ class CollaborativeFiltering(rank: Int,
   // NOTE: set the parameters according to the project description to get reproducible (deterministic) results.
   private val maxIterations = 20
   private var model: MatrixFactorizationModel = null
+  private var ratings: RDD[Rating] = null
 
   def init(ratingsRDD: RDD[(Int, Int, Option[Double], Double, Int)]): Unit = {
-    val ratings = ratingsRDD.map {
+    ratings = ratingsRDD.map {
       case (userId, movieId, _, rating, _) => Rating(userId, movieId, rating)
     }
 

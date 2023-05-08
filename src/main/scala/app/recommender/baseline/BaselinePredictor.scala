@@ -7,8 +7,14 @@ class BaselinePredictor() extends Serializable {
   private var state = null
   private var moviesAverageDeviation:  RDD[(Int, (Double, Double))] = null
   private var usersRatingAverages: RDD[(Int, Double)] = null
+  private var userRatings: RDD[(Int, Int, Double)] = null
+  private var globalAverage: Double = 0.0
 
   def init(ratingsRDD: RDD[(Int, Int, Option[Double], Double, Int)]): Unit = {
+    userRatings = ratingsRDD.map(rating => (rating._1, rating._2, rating._4))
+
+    globalAverage = ratingsRDD.map { case(_, _, _, rating, _) => rating }.mean()
+
     usersRatingAverages = ratingsRDD.map(r => (r._1, (r._2, r._4)))
       .groupByKey()
       .mapValues(list => list.map(_._2).reduce(_ + _) / list.size)
@@ -32,7 +38,7 @@ class BaselinePredictor() extends Serializable {
     val movieAverageDeviation = getMovieAverageDeviation(movieId)
 
     if (userAverageRating == 0)
-      return getMovieGlobalAverage(movieId)
+      globalAverage
     else
       userAverageRating + movieAverageDeviation * scale(userAverageRating + movieAverageDeviation, userAverageRating)
   }
@@ -56,14 +62,8 @@ class BaselinePredictor() extends Serializable {
     if (movieAverageDeviations.nonEmpty) movieAverageDeviations.head._1 else 0.0
   }
 
-  private def getMovieGlobalAverage(movieId: Int): Double = {
-    val movieGlobalAvg = moviesAverageDeviation.lookup(movieId)
-    if (movieGlobalAvg.nonEmpty) movieGlobalAvg.head._2 else 0.0
-  }
-
   private def getUserAverageRating(userId: Int): Double = {
     val userAverageRating = usersRatingAverages.lookup(userId)
     if (userAverageRating.nonEmpty) userAverageRating.head else 0.0
   }
-
 }

@@ -17,7 +17,6 @@ class LSHIndex(data: RDD[(Int, String, List[String])], seed : IndexedSeq[Int]) e
   private val titlesBuckets = data.map {
     case (title_id, title_name, keywords) => (minhash.hash(keywords), (title_id, title_name, keywords))
   }.groupByKey().mapValues(titlesIterable => titlesIterable.toList).persist()
-  // TODO: Currently not using hash function defined in this class!!!!!!!!!!!
 
   /**
    * Hash function for an RDD of queries.

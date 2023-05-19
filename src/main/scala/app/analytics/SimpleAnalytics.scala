@@ -29,9 +29,8 @@ class SimpleAnalytics() extends Serializable {
 
     titlesGroupedById.partitionBy(ratingsPartitioner).persist()
     ratingsGroupedByYearByTitle.partitionBy(moviesPartitioner).persist()
-
-    //ratingsGroupedByYearByTitle.foreach(a => println(a.toString()))
   }
+
   private def unixDate2Year(unixDate: Int): Int = {
     val dt = new DateTime(unixDate.toLong * 1000)
     dt.getYear
